@@ -15,7 +15,7 @@ class StripeController extends Controller
      */
     public function register(Request $request) {
         // Register user with Stripe using OAuth token
-        \Stripe\Stripe::setApiKey(env('STRIPE_PUBLIC_KEY'));
+        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
         $account = \Stripe\OAuth::token([
             'code' => $request->token,
             'grant_type' => 'authorization_code'
@@ -24,7 +24,7 @@ class StripeController extends Controller
         // Save user Stripe account ID
         auth()->user()->fill([
             'stripe_connect_id' => $account->stripe_user_id
-        ]);
+        ])->save();
 
         return auth()->user();
     }
@@ -38,14 +38,14 @@ class StripeController extends Controller
      */
     public function balance(Request $request) {
         // Check Stripe account exists
-        if (!$user->stripe_connect_id) {
+        if (!auth()->user()->stripe_connect_id) {
             return response()->json([
                 'error' => 'User hasn\'t registered to receive payments yet'
             ], 405);
         }
 
         // Retrieve Stripe account balance
-        \Stripe\Stripe::setApiKey(env('STRIPE_PUBLIC_KEY'));
+        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
         return \Stripe\Balance::retrieve(['stripe_account' => auth()->user()->stripe_connect_id]);
     }
 
@@ -56,7 +56,7 @@ class StripeController extends Controller
      * @return \Stripe\Payout
      */
     public function withdraw(Request $request) {
-        \Stripe\Stripe::setApiKey(env('STRIPE_PUBLIC_KEY'));
+        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
         return \Stripe\Payout::create([
             'amount' => $request->amount,
             'currency' => $request->currency,
@@ -67,13 +67,47 @@ class StripeController extends Controller
     }
 
     /**
+     * Save a Payout destination for user
+     *
+     * @param Request $request
+     * @return \Stripe\Account
+     */
+    public function saveDestination(Request $request) {
+        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+
+        return \Stripe\Account::createExternalAccount(
+            auth()->user()->stripe_connect_id,
+            ['external_account' => $request->token]
+        );
+    }
+
+    /**
+     * Retrieve users saved payout destinations
+     *
+     * @param Request $request
+     * @return \Stripe\PaymentMethod
+     */
+    public function destinations(Request $request) {
+        // Check Stripe customer exists
+        if (!auth()->user()->stripe_connect_id) {
+            return response()->json([
+                'error' => 'User hasn\'t saved any payment methods yet'
+            ], 405);
+        }
+
+        // Retrieve customer payment methods
+        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+        return \Stripe\Account::allExternalAccounts(auth()->user()->stripe_connect_id);
+    }
+
+    /**
      * Prepare a SetupIntent to save card for user
      *
      * @param Request $request
      * @return \Stripe\SetupIntent
      */
     public function prepareSource(Request $request) {
-        \Stripe\Stripe::setApiKey(env('STRIPE_PUBLIC_KEY'));
+        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
         return \Stripe\SetupIntent::create([
             'usage' => 'on_session',
             'metadata' => [
@@ -83,28 +117,61 @@ class StripeController extends Controller
     }
 
     /**
+     * Save method after PaymentIntent success
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function saveSource(Request $request) {
+        \Stripe\Stripe::setApiKey('sk_test_ccu7Gl8YxOlksae8zncTMTiE');
+
+        // Save intent card
+        if ($request->stripe_transaction_id) {
+            $intent = \Stripe\PaymentIntent::retrieve($request->stripe_transaction_id);
+            $payment_method = \Stripe\PaymentMethod::retrieve($intent->payment_method);
+            $payment_method->attach(['customer' => auth()->user()->stripe_customer_id]);
+            return $payment_method;
+        }
+
+        // If no customer create customer
+        if (!auth()->user()->stripe_customer_id) {
+            $customer = \Stripe\Customer::create(["email" => auth()->user()->email]);
+            auth()->user()->fill(['stripe_customer_id' => $customer->id])->save();
+        } else {
+            $customer = \Stripe\Customer::retrieve(auth()->user()->stripe_customer_id);
+        }
+
+        // Save source card
+        $source = \Stripe\Customer::createSource(
+            auth()->user()->stripe_customer_id,
+            ['source' => $request->source]
+        );
+        return $source;
+    }
+
+    /**
      * Retrieve users saved payment methods
      *
      * @param Request $request
      * @return \Stripe\PaymentMethod
      */
-    public function savedSources(Request $request) {
+    public function sources(Request $request) {
         // Check Stripe customer exists
-        if (!$user->stripe_connect_id) {
+        if (!auth()->user()->stripe_customer_id) {
             return response()->json([
                 'error' => 'User hasn\'t saved any payment methods yet'
             ], 405);
         }
 
         // Retrieve customer payment methods
-        \Stripe\Stripe::setApiKey(env('STRIPE_PUBLIC_KEY'));
+        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
         $methods = \Stripe\PaymentMethod::all([
             'customer' => auth()->user()->stripe_customer_id,
             'type' => 'card',
-        ]);
+        ])['data'];
         $sources = \Stripe\Customer::retrieve(auth()->user()->stripe_customer_id)
             ->sources->data;
 
-        return response()->json(array_merge($methods, $sources));
+        return array_merge($methods, $sources);
     }
 }

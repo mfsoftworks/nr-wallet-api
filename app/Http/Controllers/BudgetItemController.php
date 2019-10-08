@@ -8,27 +8,7 @@ use Illuminate\Http\Request;
 class BudgetItemController extends Controller
 {
     /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
+     * TODO: Store a newly created resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
@@ -45,17 +25,6 @@ class BudgetItemController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function show(BudgetItem $budgetItem)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\BudgetItem  $budgetItem
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(BudgetItem $budgetItem)
     {
         //
     }

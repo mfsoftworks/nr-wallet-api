@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\BudgetList;
+use App\PaymentRequest;
 use Illuminate\Http\Request;
 
-class BudgetListController extends Controller
+class PaymentRequestController extends Controller
 {
     /**
      * TODO: Store a newly created resource in storage.
@@ -21,10 +21,10 @@ class BudgetListController extends Controller
     /**
      * Display the specified resource.
      *
-     * @param  \App\BudgetList  $budgetList
+     * @param  \App\PaymentRequest  $paymentRequest
      * @return \Illuminate\Http\Response
      */
-    public function show(BudgetList $budgetList)
+    public function show(PaymentRequest $paymentRequest)
     {
         //
     }
@@ -33,10 +33,10 @@ class BudgetListController extends Controller
      * Update the specified resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  \App\BudgetList  $budgetList
+     * @param  \App\PaymentRequest  $paymentRequest
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, BudgetList $budgetList)
+    public function update(Request $request, PaymentRequest $paymentRequest)
     {
         //
     }
@@ -44,10 +44,10 @@ class BudgetListController extends Controller
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\BudgetList  $budgetList
+     * @param  \App\PaymentRequest  $paymentRequest
      * @return \Illuminate\Http\Response
      */
-    public function destroy(BudgetList $budgetList)
+    public function destroy(PaymentRequest $paymentRequest)
     {
         //
     }

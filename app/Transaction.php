@@ -13,13 +13,15 @@ class Transaction extends Model
      */
     protected $fillable = [
         'currency',
-        'ammount',
+        'amount',
         'description',
         'stripe_transaction_id',
         'sender_fee',
         'international_fee',
         'status',
-        'type'
+        'type',
+        'for_user_id',
+        'from_user_id'
     ];
 
     /**

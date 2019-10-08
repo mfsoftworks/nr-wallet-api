@@ -14,87 +14,113 @@ class FeeController extends Controller
      */
     public function __invoke(Request $request)
     {
-        // Get request variables
-        $amount = $request->amount;
-        $country = $request->sender_country;
-        $type = $request->type;
-        $recipient_country = isset($request->recipient_country) ? $request->recipient_country : null;
         $fees = [];
 
-        switch ($type) {
+        switch ($request->type) {
             case 'payment':
-                if ($country !== $recipient_country) $fees[] = getInternationalFee($amount, $country);
-                $fees[] = getSenderFee($amount, $country);
+                if ($request->sender_country !== $request->recipient_country) {
+                    $fees[] = $this->getInternationalFee($request->amount, $request->sender_country);
+                }
+                $fees[] = $this->getSenderFee($request->amount, $request->sender_country);
                 break;
 
             case 'withdrawl':
-                $fees[] = getWithdrawlFee($amount, $country);
+                $fees[] = $this->getWithdrawlFee($request->amount, $request->sender_country);
                 break;
         }
+
+        // Calculate total
+        $total = $request->amount;
+        foreach($fees as $fee) {
+            $total -= $fee['amount'];
+        }
+        $fees[] = ['type' => 'total', 'amount' => $total];
 
         return $fees;
     }
 
     private function getWithdrawlFee($amount, $country) {
         // API: Stripe sender fees
-        $fee_percents = [
-            'Australia' => 0.005,
-            'New Zealand' => 0.005,
-            'Singapore' => 0.0025
-        ];
-        $fee_amounts = [
-            'Australia' => 0.25,
-            'New Zealand' => 0.25,
-            'Singapore' => 0.50
+        $fees = [
+            'Australia' => [
+                'percent' => 0.005,
+                'fixed' => 25
+            ],
+            'New Zealand' => [
+                'percent' => 0.005,
+                'fixed' => 25
+            ],
+            'Singapore' => [
+                'percent' => 0.0025,
+                'fixed' => 50
+            ]
         ];
 
         // Calculate fee amount
         return [
             'type' => 'withdrawl_fee',
-            'amount' => ($fee_percents[$country] * $amount) + $fee_amounts[$country]
+            'amount' => ($fees[$country]['percent'] * $amount) + $fees[$country]['fixed']
         ];
     }
 
     private function getSenderFee($amount, $country) {
         // API: Stripe sender fees
-        $fee_percents = [
-            'Australia' => 0.0175,
-            'New Zealand' => 0.029,
-            'Singapore' => 0.034
+        $fees = [
+            'Australia' => [
+                'percent' => 0.0175,
+                'fixed' => 30
+            ],
+            'New Zealand' => [
+                'percent' => 0.029,
+                'fixed' => 30
+            ],
+            'Singapore' => [
+                'percent' => 0.034,
+                'fixed' => 50
+            ]
         ];
-        $fee_amounts = [
-            'Australia' => 0.30,
-            'New Zealand' => 0.30,
-            'Singapore' => 0.50
-        ];
+        $stripe_fee_amount = ($fees[$country]['percent'] * $amount) + $fees[$country]['fixed'];
 
-        // Calculate fee amounts
-        $stripe_fee_amount = ($fee_percents[$country] * $amount) + $fee_amounts[$country];
-        $wallet_fee_amount = (0.05 - $fee_percents[$country]) * $amount;
+        // Calculate wallet fees using scale
+        switch ($country) {
+            case 'Australia':
+            case 'New Zealand':
+            case 'Singapore':
+            default:
+                if ($amount <= 10000) $wallet_fee_amount = 50;
+                else if ($amount > 10000 && $amount <= 50000) $wallet_fee_amount = 80;
+                else if ($amount > 50000 && $amount <= 100000) $wallet_fee_amount = 120;
+                else $wallet_fee_amount = 145;
+                break;
+        }
 
         return [
             'type' => 'sender_fee',
-            'amount' => $stripe_fee_amount + $wallet_fee_amount
+            'amount' => $wallet_fee_amount + $stripe_fee_amount
         ];
     }
 
     private function getInternationalFee($amount, $country) {
         // API: Stripe sender fees
-        $fee_percents = [
-            'Australia' => 0.029,
-            'New Zealand' => 0.02,
-            'Singapore' => 0.02
-        ];
-        $fee_amounts = [
-            'Australia' => 0.30,
-            'New Zealand' => 0,
-            'Singapore' => 0
+        $fees = [
+            'Australia' => [
+                'percent' => 0.029,
+                'fixed' => 30
+            ],
+            'New Zealand' => [
+                'percent' => 0.02,
+                'fixed' => 0
+            ],
+            'Singapore' => [
+                'percent' => 0.02,
+                'fixed' => 0
+            ]
         ];
 
         // Calculate fee amount
         return [
             'type' => 'international_fee',
-            'amount' => ($fee_percents[$country] * $amount) + $fee_amounts[$country]
+            'amount' => ($fees[$country]['percent'] * $amount) + $fees[$country]['fixed']
         ];
     }
 }

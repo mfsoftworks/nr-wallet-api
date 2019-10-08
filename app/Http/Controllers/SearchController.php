@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\User;
 
 class SearchController extends Controller
 {
@@ -16,12 +17,12 @@ class SearchController extends Controller
     {
         // Format query
         $query = $this->formatQuery($request->input('query'));
-        $type = isset($request->type) ? $request->type : '*';
+        $type = isset($request->type) ? $request->type : '%';
 
         // Select user by ID
         return response()->json(
             User::where('username', 'like', $query)
-                ->where('account_type', $type)
+                ->where('account_type', 'like', $type)
                 ->limit(45)
                 ->get()
         );

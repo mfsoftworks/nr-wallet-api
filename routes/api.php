@@ -34,20 +34,22 @@ Route::prefix('v1')->group(function () {
             Route::post('stripe/register', 'StripeController@register')->name('user.stripe.register');
             Route::get('balance', 'StripeController@balance')->name('user.stripe.balance');
             Route::post('withdraw', 'StripeController@withdraw')->name('user.stripe.withdraw');
-            Route::get('payment/source/prepare', 'StripeController@prepareMethod')->name('user.source:save.prepare');
-            Route::get('payment/source', 'StripeController@savedMethods')->name('user.source.show');
-            Route::prefix('budget')->group(function () {
-                Route::apiResource('/', 'BudgetListController');
-                Route::apiResource('item', 'BudgetItemController');
-            });
+            Route::post('withdraw/destination', 'StripeController@saveDestination')->name('user.destination.store');
+            Route::get('withdraw/destination', 'StripeController@destinations')->name('user.destination.show');
+            Route::get('payment/source/prepare', 'StripeController@prepareMethod')->name('user.source.store.prepare');
+            Route::get('payment/source', 'StripeController@sources')->name('user.source.show');
+            Route::post('payment/source', 'StripeController@saveSource')->name('user.source:store');
         });
 
         // resource routes
         Route::get('transaction/prepare', 'TransactionController@prepare')->name('transaction.prepare');
         Route::post('transaction/pay', 'TransactionController@pay')->name('transaction.pay');
-        Route::apiResource('transaction', 'TransactionController');
-        Route::apiResource('request', 'RequestController');
-        Route::apiResource('transaction', 'TransactionController');
+        Route::apiResource('transaction', 'TransactionController')->only('show', 'destroy');
+        Route::apiResource('request', 'PaymentRequestController');
+        Route::prefix('budget')->group(function () {
+            Route::apiResource('/', 'BudgetListController');
+            Route::apiResource('item', 'BudgetItemController');
+        });
 
         // helper routes
         Route::get('search', 'SearchController')->name('search');

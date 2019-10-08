@@ -12,35 +12,35 @@ class TransactionController extends Controller
      * Prepare a PaymentIntent for Stripe
      *
      * @param Request $request
-     * @return \Illuminate\Http\Response
+     * @return \Stripe\PaymentIntent
      */
     public function prepare(Request $request) {
-        \Stripe\Stripe::setApiKey(env('STRIPE_PUBLIC_KEY'));
+        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
 
-        // Create transaction and PaymentIntent
-        $intent = \Stripe\PaymentIntent::create([
-            'amount' => $request->amount,
+        // If no customer, create customer
+        if (!auth()->user()->stripe_customer_id) {
+            $customer = \Stripe\Customer::create([
+                "email" => auth()->user()->email
+            ]);
+            auth()->user()->fill(['stripe_customer_id' => $customer->id])->save();
+        } else {
+            $customer = \Stripe\Customer::retrieve(auth()->user()->stripe_customer_id);
+        }
+
+        // Create PaymentIntent, default amount to 100, fee to 50
+        return \Stripe\PaymentIntent::create([
+            'amount' => 100,
+            'application_fee_amount' => 50,
             'currency' => $request->currency,
+            'customer' => $customer->id,
+            'setup_future_usage' => 'on_session',
             'metadata' => [
                 'user_id' => auth()->user()->id,
-                'for_user_id' => $request->for_id
+                'for_user_id' => $request->for_user_id
+            ],
+            "transfer_data" => [
+                "destination" => User::find($request->for_user_id)->stripe_connect_id,
             ]
-        ]);
-
-        // DEBUG: Not finding for_user_id
-        $transaction = Transaction::create([
-            'amount' => $request->amount,
-            'currency' => $request->currency,
-            'stripe_transaction_id' => $intent->id,
-            'status' => 'pending',
-            'type' => 'intent',
-            'for_user_id' => $request->for_id,
-            'from_user_id' => auth()->user()->id
-        ]);
-
-        return response()->json([
-            'intent' => $intent,
-            'transaction' => $transaction
         ]);
     }
 
@@ -57,86 +57,57 @@ class TransactionController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, $id)
-    {
-        \Stripe\Stripe::setApiKey(env('STRIPE_PUBLIC_KEY'));
-
-        // Get transaction references
-        $transaction = Transaction::find($id);
-
-        switch ($request->type) {
-            case 'intent':
-                // Check if type was just switched to PaymentIntent
-                if (!$transaction->stripe_transaction_id) {
-                    $intent = \Stripe\PaymentIntent::create([
-                        'amount' => $request->amount,
-                        'currency' => $request->currency,
-                        'metadata' => [
-                            'user_id' => auth()->user()->id,
-                            'for_user_id' => $request->for_id
-                        ]
-                    ]);
-                } else {
-                    \Stripe\PaymentIntent::update(
-                        $request->stripe_transaction_id,
-                        $request->all()
-                    );
-                }
-                // Update any sent data
-                $transaction->fill($request->all());
-
-                // Return updated data
-                return response()->json([
-                    'intent' => $intent,
-                    'transaction' => Transaction::find($id)
-                ]);
-                break;
-
-            case 'source':
-                // If previously using a PaymentIntent, cancel the intent
-                if ($request->stripe_transaction_id) {
-                    $intent = \Stripe\PaymentIntent::retrieve($request->stripe_transaction_id);
-                    $intent->cancel();
-                }
-
-                // If transaction has a stripe payment id then change to source
-                $transaction->fill($request->all());
-
-                // Return updated data
-                return response()->json(Transaction::find($id));
-        }
-    }
-
-    /**
      * Process transaction payment
      *
-     * // TODO: If auth()->user()->settings['requires_verification] then require email verification before processing payment
+     * // TODO: If auth()->user()->settings['payment_auth'] then require email verification before processing payment
      * // TODO: Implement webhooks to process PaymentIntent completion
      *
      * @param Request $request
      * @return \Illuminate\Http\Response
      */
     public function pay(Request $request) {
-        if ($request->type != 'source' && $request->type != 'balance') {
-            return response()->json([
-                'error' => 'Transaction isn\'t using a source payment object'
-            ], 400);
-        }
-
         \Stripe\Stripe::setApiKey('sk_test_ccu7Gl8YxOlksae8zncTMTiE');
 
         // If no customer create customer
         if (!auth()->user()->stripe_customer_id) {
-            $customer = \Stripe\Customer::create([
-                "email" => auth()->user()->email
-            ]);
-            auth()->user()->fill(['stripe_customer_id' => $customer->id]);
+            $customer = \Stripe\Customer::create(["email" => auth()->user()->email]);
+            auth()->user()->fill(['stripe_customer_id' => $customer->id])->save();
+        } else {
+            $customer = \Stripe\Customer::retrieve(auth()->user()->stripe_customer_id);
+        }
+
+        // Create Transaction
+        $transaction = Transaction::create([
+            'amount' => $request->amount,
+            'currency' => $request->currency,
+            'description' => $request->description,
+            'stripe_transaction_id' => $request->stripe_transaction_id,
+            'sender_fee' => $request->wallet_fee,
+            'international_fee' => $request->international_fee,
+            'status' => 'pending',
+            'type' => $request->type,
+            'for_user_id' => $request->for_user_id,
+            'from_user_id' => auth()->user()->id
+        ]);
+
+        // Do final updates for PaymentIntent
+        if ($request->type == 'intent') {
+            // Update PaymentIntent with final info before processing
+            return \Stripe\PaymentIntent::update(
+                $request->stripe_transaction_id,
+                [
+                    'amount' => $request->amount,
+                    'application_fee_amount' => $request->wallet_fee,
+                    'currency' => $request->currency,
+                    'description' => $request->description
+                ]
+            );
+        }
+
+        // If PaymentIntent not needed, cancel the intent
+        if ($request->stripe_transaction_id) {
+            $intent = \Stripe\PaymentIntent::retrieve($request->stripe_transaction_id);
+            $intent->cancel();
         }
 
         // If save card, save source to customer
@@ -153,59 +124,50 @@ class TransactionController extends Controller
                 // Create charge with source token
                 $charge = \Stripe\Charge::create([
                     "amount" => $request->amount,
+                    'application_fee_amount' => $request->wallet_fee,
                     "currency" => $request->currency,
                     "source" => $request->source,
+                    "customer" => $request->save_card ? auth()->user()->stripe_customer_id : null,
+                    'description' => $request->description,
                     "transfer_data" => [
-                        "destination" => User::find($request->for_id)->stripe_connect_id,
+                        "destination" => User::find($request->for_user_id)->stripe_connect_id,
                     ],
                 ]);
 
-                if (!$request->transaction_id) {
-                    $transaction = Transaction::create($request->all());
-                    $transaction->fill([
-                        'stripe_transaction_id' => $charge->id,
-                        'status' => $charge->status,
-                    ]);
-                } else {
-                    $transaction = Transaction::find($request->transaction_id);
-                    $transaction->fill($request->all());
-                    $transaction->fill([
-                        'stripe_transaction_id' => $charge->id,
-                        'status' => $charge->status
-                    ]);
-                }
+                // Update transaction
+                $transaction->fill([
+                    'stripe_transaction_id' => $charge->id,
+                    'status' => $charge->status
+                ]);
 
                 return $charge;
 
             case 'balance':
-                // TODO: create transaction for fee amount to Wallet connect account
+                // Create transaction for fee amount to Wallet connect account
+                if (env('WALLET_CONNECT_ACCOUNT') != auth()->user()->stripe_connect_id) {
+                    \Stripe\Transfer::create([
+                        "amount" => $request->wallet_fee,
+                        "currency" => $request->currency,
+                        "destination" => env('WALLET_CONNECT_ACCOUNT'),
+                        'description' => "Wallet Fee for: {$request->description}"
+                    ], ['stripe_account' => auth()->user()->stripe_connect_id]);
+                }
 
                 // Create transaction on behalf of users connected account
                 $charge = \Stripe\Transfer::create([
-                    "amount" => $request->amount,
+                    "amount" => ($request->amount - $request->wallet_fee),
                     "currency" => $request->currency,
-                    "destination" => User::find($request->for_id)->stripe_connect_id
+                    "destination" => User::find($request->for_user_id)->stripe_connect_id,
+                    'description' => $request->description
                 ], ['stripe_account' => auth()->user()->stripe_connect_id]);
 
-                if (!$request->transaction_id) {
-                    $transaction = Transaction::create($request->all());
-                    $transaction->fill([
-                        'stripe_transaction_id' => $charge->id,
-                        'status' => 'succeeded'
-                    ]);
-                } else {
-                    $transaction = Transaction::find($request->transaction_id);
-                    $transaction->fill($request->all());
-                    $transaction->fill([
-                        'stripe_transaction_id' => $charge->id,
-                        'status' => 'succeeded'
-                    ]);
-                }
-
-                return response()->json([
-                    'charge' => $charge,
-                    'transaction' => $transaction
+                // Update transaction
+                $transaction->fill([
+                    'stripe_transaction_id' => $charge->id,
+                    'status' => $charge->status
                 ]);
+
+                return $charge;
         }
     }
 
