@@ -59,8 +59,9 @@ class TransactionController extends Controller
     /**
      * Process transaction payment
      *
-     * // TODO: If auth()->user()->settings['payment_auth'] then require email verification before processing payment
-     * // TODO: Implement webhooks to process PaymentIntent completion
+     * TODO: If auth()->user()->settings['payment_auth'] then require email verification before processing payment
+     * TODO: Implement webhooks to process PaymentIntent completion
+     * TODO: Send payment notification to user and recipient
      *
      * @param Request $request
      * @return \Illuminate\Http\Response
@@ -169,17 +170,5 @@ class TransactionController extends Controller
 
                 return $charge;
         }
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param Request $request
-     * @param int $id
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Request $request, $id)
-    {
-        return Transaction::delete($id);
     }
 }

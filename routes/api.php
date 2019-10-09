@@ -44,12 +44,10 @@ Route::prefix('v1')->group(function () {
         // resource routes
         Route::get('transaction/prepare', 'TransactionController@prepare')->name('transaction.prepare');
         Route::post('transaction/pay', 'TransactionController@pay')->name('transaction.pay');
-        Route::apiResource('transaction', 'TransactionController')->only('show', 'destroy');
-        Route::apiResource('request', 'PaymentRequestController');
-        Route::prefix('budget')->group(function () {
-            Route::apiResource('/', 'BudgetListController');
-            Route::apiResource('item', 'BudgetItemController');
-        });
+        Route::apiResource('transaction', 'TransactionController')->only('show');
+        Route::apiResource('request', 'PaymentRequestController')->only('show', 'store');
+        Route::apiResource('budget', 'BudgetListController');
+        Route::apiResource('budget/item', 'BudgetItemController');
 
         // helper routes
         Route::get('search', 'SearchController')->name('search');

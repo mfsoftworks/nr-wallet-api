@@ -8,47 +8,31 @@ use Illuminate\Http\Request;
 class PaymentRequestController extends Controller
 {
     /**
-     * TODO: Store a newly created resource in storage.
+     * Store a newly created resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
     {
-        //
+        $data = $request->all();
+        $data['from_user_id'] = auth()->user()->id;
+
+        $payRequest = PaymentRequest::create($data);
+        
+        // TODO: Send request notification
+        return $payRequest;
     }
 
     /**
      * Display the specified resource.
      *
-     * @param  \App\PaymentRequest  $paymentRequest
-     * @return \Illuminate\Http\Response
-     */
-    public function show(PaymentRequest $paymentRequest)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
      * @param  \Illuminate\Http\Request  $request
-     * @param  \App\PaymentRequest  $paymentRequest
+     * @param  int $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, PaymentRequest $paymentRequest)
+    public function show(Request $request, $id)
     {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\PaymentRequest  $paymentRequest
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(PaymentRequest $paymentRequest)
-    {
-        //
+        return PaymentRequest::findOrFail($id);
     }
 }

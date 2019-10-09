@@ -15,18 +15,19 @@ class BudgetItemController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        return BudgetItem::create($request->all());
     }
 
     /**
      * Display the specified resource.
      *
-     * @param  \App\BudgetItem  $budgetItem
+     * @param  Request $request
+     * @param  int $id
      * @return \Illuminate\Http\Response
      */
-    public function show(BudgetItem $budgetItem)
+    public function show(Request $request, $id)
     {
-        //
+        return BudgetItem::findOrFail($id);
     }
 
     /**
@@ -36,9 +37,11 @@ class BudgetItemController extends Controller
      * @param  \App\BudgetItem  $budgetItem
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, BudgetItem $budgetItem)
+    public function update(Request $request, $id)
     {
-        //
+        $item = BudgetItem::findOrFail($id);
+        $item->fill($request->all());
+        return $item;
     }
 
     /**
@@ -47,8 +50,8 @@ class BudgetItemController extends Controller
      * @param  \App\BudgetItem  $budgetItem
      * @return \Illuminate\Http\Response
      */
-    public function destroy(BudgetItem $budgetItem)
+    public function destroy(Request $request, $id)
     {
-        //
+        return BudgetList::destroy($id);
     }
 }

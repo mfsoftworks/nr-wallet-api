@@ -12,7 +12,7 @@ class BudgetItem extends Model
      * @var array
      */
     protected $fillable = [
-        'name', 'ammount'
+        'name', 'amount', 'budget_list_id'
     ];
 
     /**
@@ -20,6 +20,6 @@ class BudgetItem extends Model
      */
     public function budgetList()
     {
-        return $this->belongsTo('App\BudgetList');
+        return $this->belongsTo('App\BudgetList', 'budget_list_id');
     }
 }

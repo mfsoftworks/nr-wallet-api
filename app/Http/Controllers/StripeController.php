@@ -56,7 +56,10 @@ class StripeController extends Controller
      * @return \Stripe\Payout
      */
     public function withdraw(Request $request) {
+        // TODO: Send withdrawl notification
+
         \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+
         return \Stripe\Payout::create([
             'amount' => $request->amount,
             'currency' => $request->currency,
@@ -73,6 +76,8 @@ class StripeController extends Controller
      * @return \Stripe\Account
      */
     public function saveDestination(Request $request) {
+        // TODO: Send new withdrawl destination notification
+        
         \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
 
         return \Stripe\Account::createExternalAccount(
