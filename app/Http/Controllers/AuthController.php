@@ -75,7 +75,7 @@ class AuthController extends Controller
             $user->save();
 
             // Create JWT for access
-            $token = auth()->user()->createToken(env('APP_NAME', 'Laravel'))->accessToken;
+            $token = auth()->user()->createToken(env('APP_NAME', 'Laravel'), ['*'])->accessToken;
 
             // Dispatch login event
             $agent = new Agent();
