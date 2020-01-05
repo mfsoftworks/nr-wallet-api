@@ -60,4 +60,15 @@ class User extends Authenticatable
         'banned_until' => 'datetime',
         'settings' => 'array',
     ];
+
+    /**
+     * Find the user instance for the given username.
+     *
+     * @param  string  $username
+     * @return \App\User
+     */
+    public function findForPassport($username)
+    {
+        return $this->where('username', $username)->first();
+    }
 }
