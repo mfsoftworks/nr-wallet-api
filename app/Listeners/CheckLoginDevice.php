@@ -5,7 +5,7 @@ namespace App\Listeners;
 use App\User;
 use App\Device;
 use Jenssegers\Agent\Agent;
-use App\Events\UserSignin;
+use App\Events\UserLogin;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -25,10 +25,10 @@ class CheckLoginDevice implements ShouldQueue
     /**
      * Handle the event.
      *
-     * @param  UserSignin  $event
+     * @param  UserLogin  $event
      * @return void
      */
-    public function handle(UserSignin $event)
+    public function handle(UserLogin $event)
     {
         // Reference agent
         $agent = $event->request;

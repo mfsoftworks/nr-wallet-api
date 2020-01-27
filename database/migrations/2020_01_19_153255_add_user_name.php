@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class AddStripeFieldsToUsers extends Migration
+class AddUserName extends Migration
 {
     /**
      * Run the migrations.
@@ -14,9 +14,7 @@ class AddStripeFieldsToUsers extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('display_name')->nullable();
-            $table->string('stripe_customer_id')->nullable();
-            $table->string('stripe_connect_id')->nullable();
+            $table->string('name')->nullable();
         });
     }
 
@@ -28,9 +26,7 @@ class AddStripeFieldsToUsers extends Migration
     public function down()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('display_name');
-            $table->dropColumn('stripe_customer_id');
-            $table->dropColumn('stripe_connect_id');
+            $table->dropColumn('name');
         });
     }
 }

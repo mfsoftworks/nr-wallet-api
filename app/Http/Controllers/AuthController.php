@@ -9,6 +9,7 @@ use App\Events\UserLogin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Validator;
 
 class AuthController extends Controller
@@ -40,17 +41,28 @@ class AuthController extends Controller
             'password' => Hash::make($request->password)
         ]);
 
+        // create customer
+        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+        $customer = \Stripe\Customer::create(["email" => $user->email]);
+        auth()->user()->fill(['stripe_customer_id' => $customer->id])->save();
+
         // TODO: Email out welcome email
 
         // Get passport token
-        $token = $user->createToken(env('APP_NAME', 'Laravel'))->accessToken;
+        $token = $user->createToken(env('APP_NAME', 'Laravel'), ['*'])->accessToken;
 
         // Signup success response
         return response()->json([
             'token' => $token,
-            'email' => $request->email,
-            'settings' => $user->settings,
-            'profile' => $user
+            'profile' => $user->makeVisible([
+                'name',
+                'email',
+                'fcm_token',
+                'stripe_connect_id',
+                'stripe_customer_id',
+                'display_name',
+                'settings'
+            ])
         ], 201);
     }
 
@@ -74,8 +86,27 @@ class AuthController extends Controller
             $user->deactivated = 0;
             $user->save();
 
+            // If no customer create customer
+            if (!auth()->user()->stripe_customer_id) {
+                \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+                $customer = \Stripe\Customer::create(["email" => auth()->user()->email]);
+                auth()->user()->fill(['stripe_customer_id' => $customer->id])->save();
+            }
+
+            // Save user default currency
+            if ($user->stripe_connect_id && (!$user->default_currency || !$user->country || !$user->name)) {
+                \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+                $account = \Stripe\Account::retrieve($user->stripe_connect_id);
+                Log::notice($account);
+                $user->fill([
+                    'default_currency' => $account->default_currency,
+                    'country' => $account->country,
+                    'name' => $account->business_profile->name
+                ])->save();
+            }
+
             // Create JWT for access
-            $token = auth()->user()->createToken(env('APP_NAME', 'Laravel'), ['*'])->accessToken;
+            $token = $user->createToken(env('APP_NAME', 'Laravel'), ['*'])->accessToken;
 
             // Dispatch login event
             $agent = new Agent();
@@ -91,9 +122,15 @@ class AuthController extends Controller
             // Return successful response
             return response()->json([
                 'token' => $token,
-                'email' => auth()->user()->email,
-                'settings' => auth()->user()->settings,
-                'profile' => auth()->user()
+                'profile' => auth()->user()->makeVisible([
+                    'name',
+                    'email',
+                    'fcm_token',
+                    'stripe_connect_id',
+                    'stripe_customer_id',
+                    'display_name',
+                    'settings'
+                ])
             ], 201);
 
         // If auth fails respond with error

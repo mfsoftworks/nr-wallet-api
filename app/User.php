@@ -18,14 +18,16 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'username',
+        'name',
         'email',
-        'account_type',
         'password',
         'settings',
         'fcm_token',
         'display_name',
         'stripe_customer_id',
-        'stripe_connect_id'
+        'stripe_connect_id',
+        'default_currency',
+        'country'
     ];
     protected $attributes = [
         'deactivated' => 0,
@@ -38,6 +40,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $hidden = [
+        'name',
         'deactivated',
         'banned_until',
         'settings',
@@ -46,8 +49,8 @@ class User extends Authenticatable
         'remember_token',
         'email_verified_at',
         'fcm_token',
-        'stripe_customer_id',
-        'stripe_connect_id'
+        'stripe_connect_id',
+        'stripe_customer_id'
     ];
 
     /**
@@ -70,5 +73,13 @@ class User extends Authenticatable
     public function findForPassport($username)
     {
         return $this->where('username', $username)->first();
+    }
+
+    // Return transactions for this user
+    public function sent() {
+        return $this->hasMany('App\Transaction', 'from_user_id');
+    }
+    public function received() {
+        return $this->hasMany('App\Transaction', 'for_user_id');
     }
 }

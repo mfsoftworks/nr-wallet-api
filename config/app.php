@@ -176,11 +176,6 @@ return [
         App\Providers\RouteServiceProvider::class,
 
         /**
-         * CORS Service Provider
-         */
-        Barryvdh\Cors\ServiceProvider::class,
-
-        /**
          * Firebase Service Provider
          */
         LaravelFCM\FCMServiceProvider::class,

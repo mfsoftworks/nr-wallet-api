@@ -12,3 +12,4 @@
 */
 
 Auth::routes();
+Route::stripeWebhooks('webhooks/stripe');

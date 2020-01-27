@@ -47,11 +47,11 @@ Route::prefix('v1')->group(function () {
                 ->middleware('scope:update-profile-fcm')
                 ->name('user.fcm.token');
 
-            Route::post('fcm/subscribe/{$topic}', 'FcmController@subscribe')
+            Route::post('fcm/subscribe/{topic}', 'FcmController@subscribe')
                 ->middleware('scope:update-profile-fcm')
                 ->name('user.fcm.subscribe');
 
-            Route::post('fcm/unsubscribe/{$topic}', 'FcmController@unsubscribe')
+            Route::post('fcm/unsubscribe/{topic}', 'FcmController@unsubscribe')
                 ->middleware('scope:update-profile-fcm')
                 ->name('user.fcm.unsubscribe');
 
@@ -67,25 +67,33 @@ Route::prefix('v1')->group(function () {
                 ->middleware('scope:stripe-register')
                 ->name('user.stripe.register');
 
+            Route::get('stripe/dashboard', 'StripeController@loginLink')
+                ->middleware('scope:stripe-register')
+                ->name('user.stripe.register');
+
+            Route::get('stripe/account', 'StripeController@account')
+                ->middleware('scope:stripe-register')
+                ->name('user.stripe.register');
+
             Route::get('balance', 'StripeController@balance')
                 ->middleware('scope:view-balance')
                 ->name('user.stripe.balance');
 
-            Route::post('withdraw', 'StripeController@withdraw')
+            Route::post('withdrawl', 'StripeController@withdraw')
                 ->middleware('scope:withdraw-balance')
                 ->name('user.stripe.withdraw');
 
-            Route::post('withdraw/destination', 'StripeController@saveDestination')
-                ->middleware('scope:create-withdrawl-destination')
-                ->name('user.destination.store');
+            Route::get('withdrawl', 'StripeController@listWithdraw')
+                ->middleware('scope:withdraw-balance')
+                ->name('user.stripe.withdraw');
 
             Route::get('withdraw/destination', 'StripeController@destinations')
                 ->middleware('scope:view-withdrawl-destination')
                 ->name('user.destination.show');
 
-            Route::get('payment/source/prepare', 'StripeController@prepareMethod')
-                ->middleware('scope:create-payment-source')
-                ->name('user.source.store.prepare');
+            Route::post('withdraw/destination', 'StripeController@saveDestination')
+                ->middleware('scope:create-withdrawl-destination')
+                ->name('user.destination.store');
 
             Route::get('payment/source', 'StripeController@sources')
                 ->middleware('scope:create-payment-source')
@@ -97,9 +105,19 @@ Route::prefix('v1')->group(function () {
         });
 
         // resource routes
+        Route::apiResource('profile', 'ProfileController')
+            ->only('show');
+
+        Route::get('profile/stripe/{id}', 'StripeController@basicAccount')
+            ->name('profile.stripe');
+
         Route::get('transaction/prepare', 'TransactionController@prepare')
             ->middleware('scope:create-pending-transaction')
             ->name('transaction.prepare');
+
+        Route::put('transaction/update', 'TransactionController@update')
+            ->middleware('scope:create-pending-transaction')
+            ->name('transaction.update');
 
         Route::post('transaction/pay', 'TransactionController@pay')
             ->middleware('scope:confirm-transaction')
@@ -107,7 +125,7 @@ Route::prefix('v1')->group(function () {
 
         Route::apiResource('transaction', 'TransactionController')
             ->middleware('scope:view-transaction-history')
-            ->only('show');
+            ->only('show', 'index');
 
         Route::apiResource('request', 'PaymentRequestController')
             ->middleware('scope:create-payment-request')
