@@ -10,6 +10,15 @@
 | contains the "web" middleware group. Now create something great!
 |
 */
+Route::get('/', function () {
+    return view('welcome');
+});
+
+Route::group(['middleware' => ['web', 'auth']], function () {
+    Route::get('/clients', function () {
+        return view('clients');
+    });
+});
 
 Auth::routes();
 Route::stripeWebhooks('webhooks/stripe');
