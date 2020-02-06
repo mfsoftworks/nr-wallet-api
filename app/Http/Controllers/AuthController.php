@@ -150,7 +150,15 @@ class AuthController extends Controller
         $user = auth()->user();
 
         // Return user with hidden data
-        return response()->json($user->makeVisible(['fcm_token', 'settings', 'email']));
+        return response()->json($user->makeVisible([
+            'name',
+            'email',
+            'fcm_token',
+            'stripe_connect_id',
+            'stripe_customer_id',
+            'display_name',
+            'settings'
+        ]));
     }
 
     /**

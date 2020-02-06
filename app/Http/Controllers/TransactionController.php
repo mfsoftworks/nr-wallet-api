@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use App\Transaction;
 use App\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Log;
+use Carbon;
 
 class TransactionController extends Controller
 {
@@ -55,29 +56,17 @@ class TransactionController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function index(Request $request) {
-        if ($request->offset) {
-            $sent = auth()->user()
-                ->sent()
-                ->where('id', '<', $request->sent_offset)
-                ->whereNotIn('for_user_id', [auth()->user()->id])
-                ->limit(15)
-                ->latest();
-            $received = auth()->user()
-                ->received()
-                ->where('id', '<', $request->received_offset)
-                ->limit(15)
-                ->latest();
-        } else {
-            $sent = auth()->user()
-                ->sent()
-                ->whereNotIn('for_user_id', [auth()->user()->id])
-                ->limit(15)
-                ->latest();
-            $received = auth()->user()
-                ->received()
-                ->limit(15)
-                ->latest();
-        }
+        // TODO: Add date between check
+
+        $sent = auth()->user()
+            ->sent()
+            ->whereDate('created_at', '>=', Carbon::now()->subMonths(3))
+            ->whereNotIn('for_user_id', [auth()->user()->id])
+            ->latest();
+        $received = auth()->user()
+            ->received()
+            ->whereDate('created_at', '>=', Carbon::now()->subMonths(3))
+            ->latest();
 
         // Return notifications for authenticated user, within the last 4 weeks
         return response()->json([
@@ -207,6 +196,7 @@ class TransactionController extends Controller
                         'payment_method' => '$request->payment_method'
                     ]);
                 }
+                $intent = \Stripe\PaymentIntent::retrieve($request->stripe_transaction_id);
                 return $intent;
         }
     }

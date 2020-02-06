@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Kreait\Firebase;
 use Kreait\Firebase\Messaging\CloudMessage;
 use App\User;
@@ -43,6 +44,33 @@ class FcmController extends Controller
         $user->fill([
             'fcm_token' => $key
         ])->save();
+
+        return response()->json('success', 204);
+    }
+
+    /**
+     * Remove FCM Token
+     *
+     * @param Request $request
+     * @param string $token
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function remove(Request $request, $token) {
+        // Get user
+        $user = auth()->user();
+
+        // Set group name
+        $groupName = "user.{$user->id}";
+
+        // Get group key if existing
+        $groupToken = $user->fcm_token;
+
+        Log::alert("Updating group {$groupName} for user {$user->username}, removing token {$token}");
+
+        // Remove token from group
+        FCMGroup::removeFromGroup($groupName, $groupToken, [$token]);
+
+        Log::alert("User {$user->username} removed {$token} from FCM group {$groupToken}");
 
         return response()->json('success', 204);
     }
