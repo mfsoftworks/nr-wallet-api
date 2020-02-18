@@ -58,7 +58,7 @@ class PaymentIntentSucceeded implements ShouldQueue
         $currency = strtoupper($data["currency"]);
 
         // Create Notifications
-        $note = $transaction->description ?? "";
+        $note = $transaction->description ? "Note: {$description}" : "";
         $sNotification = (new PayloadNotificationBuilder())
             ->setTitle('Transfer Complete')
             ->setBody("Completed transferring \${$amount} {$currency} to {$receiver->username}")
