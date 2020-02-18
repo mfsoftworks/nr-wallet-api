@@ -38,6 +38,8 @@ class AuthServiceProvider extends ServiceProvider
             'create-withdrawl-destination' => '<b>** SENSITIVE **</b> Attach a destination to withdraw account balance to (Bank account or credit/debit card)',
             'view-withdrawl-destinations' => '<b>** SENSITIVE **</b> View attached withdrawl destinations for account (This doesn\'t include sensitive information',
             'create-payment-source' => 'Save new payment source for account',
+            'show-payment-source' => 'Display payment sources for account',
+            'delete-payment-source' => 'Delete payment source for account',
             'create-pending-transaction' => 'Create new pending transactions for account',
             'confirm-transaction' => '<b>** SENSITIVE **</b> Confirm pending transaction (This deducts money from account and initiates transfer)',
             'view-transaction-history' => 'View account transaction history',

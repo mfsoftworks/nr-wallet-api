@@ -47,6 +47,10 @@ Route::prefix('v1')->group(function () {
                 ->middleware('scope:update-profile-fcm')
                 ->name('user.fcm.token');
 
+            Route::delete('fcm/token/{token}', 'FcmController@remove')
+                ->middleware('scope:update-profile-fcm')
+                ->name('user.fcm.token.delete');
+
             Route::post('fcm/subscribe/{topic}', 'FcmController@subscribe')
                 ->middleware('scope:update-profile-fcm')
                 ->name('user.fcm.subscribe');
@@ -91,17 +95,25 @@ Route::prefix('v1')->group(function () {
                 ->middleware('scope:view-withdrawl-destination')
                 ->name('user.destination.show');
 
-            Route::post('withdraw/destination', 'StripeController@saveDestination')
-                ->middleware('scope:create-withdrawl-destination')
-                ->name('user.destination.store');
+            // Route::post('withdraw/destination', 'StripeController@saveDestination')
+            //     ->middleware('scope:create-withdrawl-destination')
+            //     ->name('user.destination.store');
 
             Route::get('payment/source', 'StripeController@sources')
-                ->middleware('scope:create-payment-source')
+                ->middleware('scope:show-payment-source')
+                ->name('user.source.show');
+
+            Route::get('payment/source/{method}', 'StripeController@source')
+                ->middleware('scope:show-payment-source')
                 ->name('user.source.show');
 
             Route::post('payment/source', 'StripeController@saveSource')
                 ->middleware('scope:create-payment-source')
-                ->name('user.source:store');
+                ->name('user.source.store');
+
+            Route::delete('payment/source/{method}', 'StripeController@deleteSource')
+                ->middleware('scope:delete-payment-source')
+                ->name('user.source.delete');
         });
 
         // resource routes
