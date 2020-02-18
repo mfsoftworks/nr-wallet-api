@@ -31,7 +31,7 @@ class User extends Authenticatable
     ];
     protected $attributes = [
         'deactivated' => 0,
-        'settings' => '{"encryptLogin": true, "paymentAuth": true, "balanceMin": 0, "withdrawLockout": false, "withdrawLockoutDatetime": null}'
+        'settings' => '{}'
     ];
 
     /**
