@@ -117,8 +117,6 @@ class StripeController extends Controller
      * @return \Stripe\Payout
      */
     public function withdraw(Request $request) {
-        // TODO: Send withdrawl notification
-
         \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
 
         return \Stripe\Payout::create([
@@ -151,8 +149,6 @@ class StripeController extends Controller
      * @return \Stripe\Account
      */
     public function saveDestination(Request $request) {
-        // TODO: Send new withdrawl destination notification
-
         \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
 
         return \Stripe\Account::createExternalAccount(
@@ -181,7 +177,7 @@ class StripeController extends Controller
     }
 
     /**
-     * Save method after PaymentIntent success
+     * Save method
      *
      * @param Request $request
      * @return \Illuminate\Http\Response
@@ -198,11 +194,33 @@ class StripeController extends Controller
         }
 
         // Save PaymentMethod
+        $id = auth()->user()->stripe_connect_id;
+        Log::alert("Saving Payment Method For Account {$id}");
         $payment_method = \Stripe\PaymentMethod::retrieve($request->id);
         $payment_method->attach([
             'customer' => $customer->id
-        ], ['stripe_account' => auth()->user()->stripe_connect_id]);
+        ]);
+        //, ['stripe_account' => auth()->user()->stripe_connect_id]);
         return $payment_method;
+    }
+
+    /**
+     * Delete method
+     *
+     * @param Request $request
+     * @param string $method
+     * @return \Illuminate\Http\Response
+     */
+    public function deleteSource(Request $request, string $method) {
+        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+
+        // Get customer
+        $customer = \Stripe\Customer::retrieve(auth()->user()->stripe_customer_id);
+
+        // Delete PaymentMethod
+        $payment_method = \Stripe\PaymentMethod::retrieve($method);
+        $payment_method->detach();
+        return response()->json(null, 204);
     }
 
     /**
@@ -229,5 +247,25 @@ class StripeController extends Controller
             ->sources->data;
 
         return array_merge($methods, $sources);
+    }
+
+    /**
+     * Retrieve users saved payment method
+     *
+     * @param Request $request
+     * @param string $method
+     * @return \Stripe\PaymentMethod
+     */
+    public function source(Request $request, string $method) {
+        // Check Stripe customer exists
+        if (!auth()->user()->stripe_customer_id) {
+            return response()->json([
+                'error' => 'User hasn\'t saved any payment methods yet'
+            ], 405);
+        }
+
+        // Retrieve customer payment methods
+        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+        return \Stripe\PaymentMethod::retrieve($method);
     }
 }

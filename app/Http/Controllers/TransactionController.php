@@ -30,9 +30,10 @@ class TransactionController extends Controller
         }
 
         // Create PaymentIntent, default amount to 100, fee to 50
+        $amount = $request->amount ?? 100;
         return \Stripe\PaymentIntent::create([
-            'amount' => 50,
-            'application_fee_amount' => round(50 * env('WALLET_STRIPE_FEES', 0.4)),
+            'amount' => $amount,
+            'application_fee_amount' => floor($amount * env('WALLET_STRIPE_FEES', 0.05)),
             'currency' => auth()->user()->default_currency,
             'customer' => $customer->id,
             'setup_future_usage' => 'on_session',
@@ -56,7 +57,7 @@ class TransactionController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function index(Request $request) {
-        // TODO: Add date between check
+        // TODO: Add `date between` check
 
         $sent = auth()->user()
             ->sent()
@@ -106,10 +107,9 @@ class TransactionController extends Controller
 
         // Update PaymentIntent with final info before processing
         return \Stripe\PaymentIntent::update(
-            $request->stripe_transaction_id,
-            [
+            $request->stripe_transaction_id, [
                 'amount' => $request->amount,
-                'application_fee_amount' => round($request->amount * env('WALLET_STRIPE_FEES', 0.5)),
+                'application_fee_amount' => floor($request->amount * env('WALLET_STRIPE_FEES', 0.05)),
                 'currency' => $request->currency,
                 'description' => $request->description
             ]
@@ -153,7 +153,7 @@ class TransactionController extends Controller
         // Process payment of source transaction
         switch ($request->type) {
             case 'balance':
-                $fee_amount = round($request->amount * env('WALLET_STRIPE_FEES', 0.5));
+                $fee_amount = floor($request->amount * env('WALLET_STRIPE_FEES', 0.05));
 
                 // Create transaction for fee amount to Wallet connect account
                 $fee = \Stripe\Charge::create([
@@ -193,7 +193,7 @@ class TransactionController extends Controller
                         $request->stripe_transaction_id
                     );
                     $intent->confirm([
-                        'payment_method' => '$request->payment_method'
+                        'payment_method' => $request->payment_method
                     ]);
                 }
                 $intent = \Stripe\PaymentIntent::retrieve($request->stripe_transaction_id);

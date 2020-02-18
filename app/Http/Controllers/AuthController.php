@@ -171,16 +171,27 @@ class AuthController extends Controller
         // Instantiate user data
         $data = $request->all();
 
+        // Only take relevent data
+        $payload = [
+            "username" => $data["username"],
+            "email" => $data["email"],
+            "settings" => $data["settings"],
+            "display_name" => $data["displayName"],
+            "password" => $data["password"] ?? null
+        ];
+
         // If updating password, hash new password
-        if ($request->password) {
-            $data['password'] = Hash::make($request->password);
+        if (!$payload["password"]) {
+            unset($payload["password"]);
+        } else {
+            $payload['password'] = Hash::make($data['password']);
         }
 
         // TODO: If profile pic exists then handle media
 
         // Get authorised user account
-        $user = auth()->user()->fill($data)->save();
-        return response()->json($this->user($request));
+        $user = auth()->user()->fill($payload)->save();
+        return $this->user($request);
     }
 
     /**
