@@ -13,10 +13,9 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Spatie\WebhookClient\Models\WebhookCall;
 use Illuminate\Support\Facades\Log;
 use App\User;
-use App\Transaction;
 use FCM;
 
-class PaymentIntentSucceeded implements ShouldQueue
+class TransferPaid implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 

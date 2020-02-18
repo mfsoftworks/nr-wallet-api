@@ -13,10 +13,9 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Spatie\WebhookClient\Models\WebhookCall;
 use Illuminate\Support\Facades\Log;
 use App\User;
-use App\Transaction;
 use FCM;
 
-class PaymentIntentSucceeded implements ShouldQueue
+class PaymentMethodAttached implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -47,32 +46,22 @@ class PaymentIntentSucceeded implements ShouldQueue
         $data = $this->webhookCall->payload["data"]["object"];
 
         // Get User & FCM Token
-        $sender = User::findOrFail($data["metadata"]["user_id"]);
-        $receiver = User::findOrFail($data["metadata"]["for_user_id"]);
+        $user = User::where('stripe_customer_id', $data["customer"])->first();
 
-        // Get Transactions
-        $transaction = Transaction::where('stripe_transaction_id', $data["id"])->first();
-
-        // TODO: Format Each Currency Correctly
-        $amount = $data["amount"]/100;
-        $currency = strtoupper($data["currency"]);
-
-        // Create Notifications
-        $note = $transaction->description ?? "";
-        $sNotification = (new PayloadNotificationBuilder())
-            ->setTitle('Transfer Complete')
-            ->setBody("Completed transferring \${$amount} {$currency} to {$receiver->username}")
-            ->setChannelId('transfers')
-            ->build();
-        $rNotification = (new PayloadNotificationBuilder())
-            ->setTitle("{$sender->username} sent \${$amount} {$currency}")
-            ->setBody($note)
-            ->setChannelId('transfers')
-            ->build();
+        // Create Notification
+        $notification = (new PayloadNotificationBuilder())
+            ->setTitle('New Payment Source')
+            ->setChannelId('payment_methods');
         $options = (new OptionsBuilder())->setCollapseKey($data["id"]);
 
+        switch ($data["type"]) {
+            case "card":
+            default:
+                $notification->setBody("New Payment Source Ending in {$data["card"]["last4"]} Added to Your Account");
+                break;
+        }
+
         // Send Notification
-        FCM::sendToGroup($sender->fcm_token, $options->build(), $sNotification, null);
-        FCM::sendToGroup($receiver->fcm_token, $options->build(), $rNotification, null);
+        $response = FCM::sendToGroup($user->fcm_token, $options->build(), $notification->build(), null);
     }
 }

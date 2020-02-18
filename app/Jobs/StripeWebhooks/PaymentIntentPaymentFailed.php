@@ -13,10 +13,9 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Spatie\WebhookClient\Models\WebhookCall;
 use Illuminate\Support\Facades\Log;
 use App\User;
-use App\Transaction;
 use FCM;
 
-class PaymentIntentSucceeded implements ShouldQueue
+class PaymentIntentPaymentFailed implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -50,29 +49,28 @@ class PaymentIntentSucceeded implements ShouldQueue
         $sender = User::findOrFail($data["metadata"]["user_id"]);
         $receiver = User::findOrFail($data["metadata"]["for_user_id"]);
 
-        // Get Transactions
-        $transaction = Transaction::where('stripe_transaction_id', $data["id"])->first();
-
         // TODO: Format Each Currency Correctly
         $amount = $data["amount"]/100;
         $currency = strtoupper($data["currency"]);
 
+        // Get Error
+        $error = "Transaction failed with error: {$data["last_payment_error"]["message"]}" ?? "";
+
         // Create Notifications
-        $note = $transaction->description ?? "";
-        $sNotification = (new PayloadNotificationBuilder())
-            ->setTitle('Transfer Complete')
-            ->setBody("Completed transferring \${$amount} {$currency} to {$receiver->username}")
-            ->setChannelId('transfers')
-            ->build();
-        $rNotification = (new PayloadNotificationBuilder())
-            ->setTitle("{$sender->username} sent \${$amount} {$currency}")
-            ->setBody($note)
+        $notification = (new PayloadNotificationBuilder())
+            ->setTitle("Failed Transfer \${$amount} {$currency} to {$receiver->username}")
+            ->setBody($error)
             ->setChannelId('transfers')
             ->build();
         $options = (new OptionsBuilder())->setCollapseKey($data["id"]);
 
         // Send Notification
-        FCM::sendToGroup($sender->fcm_token, $options->build(), $sNotification, null);
-        FCM::sendToGroup($receiver->fcm_token, $options->build(), $rNotification, null);
+        $response = FCM::sendToGroup($sender->fcm_token, $options->build(), $notification, null);
+
+        // TODO: Seperate into different job if needed
+        // Cancel transaction
+        // \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+        // $intent = \Stripe\PaymentIntent::retrieve($data["id"]);
+        // $intent->cancel();
     }
 }
