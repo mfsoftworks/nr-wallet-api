@@ -2,9 +2,7 @@
 
 namespace App;
 
-use Illuminate\Database\Eloquent\Model;
-
-class Device extends Model
+class Device extends CachableModel
 {
     /**
      * Assignable like values

@@ -2,9 +2,7 @@
 
 namespace App;
 
-use Illuminate\Database\Eloquent\Model;
-
-class BudgetList extends Model
+class BudgetList extends CachableModel
 {
     /**
      * The attributes that are mass assignable.

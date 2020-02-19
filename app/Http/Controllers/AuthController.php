@@ -27,6 +27,7 @@ class AuthController extends Controller
             'email' => 'required|email|unique:users',
             'password' => 'required|min:6'
         ]);
+
         if ($validator->fails()) {
             return response()->json([
                 'error' => 'Unable to create new account, check your details',
@@ -41,15 +42,22 @@ class AuthController extends Controller
             'password' => Hash::make($request->password)
         ]);
 
-        // create customer
+        // Create customer TODO: Convert to Job
         \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
         $customer = \Stripe\Customer::create(["email" => $user->email]);
         auth()->user()->fill(['stripe_customer_id' => $customer->id])->save();
 
-        // TODO: Email out welcome email
+        // FIXME: Replace beautymail (Remove dependency, shift to html5 template)
+        // Email out welcome email
+        // $beautymail = app()->make('Snowfire\Beautymail\Beautymail');
+        // $beautymail->send('emails.welcome', [], function($message) use ($user) {
+        //     $message->from('mua@nygmarosebeauty.com', 'NR Escape')
+        //         ->to($user->email, $user->username)
+        //         ->subject('Welcome to Escape');
+        // });
 
         // Get passport token
-        $token = $user->createToken(env('APP_NAME', 'Laravel'), ['*'])->accessToken;
+        $token = $user->createToken(env('APP_NAME', 'NR Flow'), ['*'])->accessToken;
 
         // Signup success response
         return response()->json([

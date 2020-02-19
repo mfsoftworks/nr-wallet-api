@@ -31,7 +31,7 @@ class TransactionController extends Controller
 
         // Create PaymentIntent, default amount to 100, fee to 50
         $amount = $request->amount ?? 100;
-        return \Stripe\PaymentIntent::create([
+        $intent = \Stripe\PaymentIntent::create([
             'amount' => $amount,
             'application_fee_amount' => floor($amount * env('WALLET_STRIPE_FEES', 0.05)),
             'currency' => auth()->user()->default_currency,
@@ -48,6 +48,21 @@ class TransactionController extends Controller
         ], [
             'idempotency_key' => $request->nonce
         ]);
+
+        // Create Transaction
+        $transaction = Transaction::create([
+            'amount' => $amount,
+            'currency' => auth()->user()->default_currency,
+            'description' => $request->description,
+            'stripe_transaction_id' => $intent->id,
+            'status' => 'hidden',
+            'type' => 'card',
+            'for_user_id' => $request->for_user_id,
+            'from_user_id' => auth()->user()->id,
+            'nonce' => $request->nonce
+        ]);
+
+        return $intent;
     }
 
     /**
@@ -63,10 +78,12 @@ class TransactionController extends Controller
             ->sent()
             ->whereDate('created_at', '>=', Carbon::now()->subMonths(3))
             ->whereNotIn('for_user_id', [auth()->user()->id])
+            ->where('status', '!=', 'hidden')
             ->latest();
         $received = auth()->user()
             ->received()
             ->whereDate('created_at', '>=', Carbon::now()->subMonths(3))
+            ->where('status', '!=', 'hidden')
             ->latest();
 
         // Return notifications for authenticated user, within the last 4 weeks
@@ -106,7 +123,7 @@ class TransactionController extends Controller
         }
 
         // Update PaymentIntent with final info before processing
-        return \Stripe\PaymentIntent::update(
+        $intent = \Stripe\PaymentIntent::update(
             $request->stripe_transaction_id, [
                 'amount' => $request->amount,
                 'application_fee_amount' => floor($request->amount * env('WALLET_STRIPE_FEES', 0.05)),
@@ -114,13 +131,22 @@ class TransactionController extends Controller
                 'description' => $request->description
             ]
         );
+
+        // Update Transaction
+        $transaction = Transaction::where('stripe_transaction_id', $request->stripe_transaction_id)->first();
+        $transaction->fill([
+            'amount' => $request->amount,
+            'currency' => $request->currency,
+            'description' => $request->description
+        ])->save();
+
+        return $intent;
     }
 
     /**
      * Process transaction payment
      *
-     * TODO: If auth()->user()->settings['payment_auth'] then require email verification before processing payment
-     * TODO: Send payment notification to user and recipient
+     * TODO: If auth()->user()->settings['payment_auth'] then require verification before processing payment
      *
      * @param Request $request
      * @return \Illuminate\Http\Response
@@ -136,17 +162,15 @@ class TransactionController extends Controller
             $customer = \Stripe\Customer::retrieve(auth()->user()->stripe_customer_id);
         }
 
-        // Create Transaction
-        $transaction = Transaction::create([
+        // Update Transaction
+        $transaction = Transaction::where('stripe_transaction_id', $request->stripe_transaction_id)->first();
+        $transaction->fill([
             'amount' => $request->amount,
             'currency' => $request->currency,
             'description' => $request->description,
-            'stripe_transaction_id' => $request->stripe_transaction_id,
             'status' => $request->status,
-            'type' => $request->type,
-            'for_user_id' => $request->for_user_id['id'],
-            'from_user_id' => auth()->user()->id
-        ]);
+            'type' => $request->type
+        ])->save();
 
         Log::notice($transaction);
 
@@ -188,7 +212,7 @@ class TransactionController extends Controller
             case 'sepa':
             default:
                 // If payment method included, confirm intent
-                if($request->payment_method) {
+                if ($request->payment_method) {
                     $intent = \Stripe\PaymentIntent::retrieve(
                         $request->stripe_transaction_id
                     );

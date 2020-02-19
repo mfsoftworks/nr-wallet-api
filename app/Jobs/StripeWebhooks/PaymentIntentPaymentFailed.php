@@ -67,10 +67,6 @@ class PaymentIntentPaymentFailed implements ShouldQueue
         // Send Notification
         $response = FCM::sendToGroup($sender->fcm_token, $options->build(), $notification, null);
 
-        // TODO: Seperate into different job if needed
-        // Cancel transaction
-        // \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
-        // $intent = \Stripe\PaymentIntent::retrieve($data["id"]);
-        // $intent->cancel();
+        // TODO: Update Transaction
     }
 }

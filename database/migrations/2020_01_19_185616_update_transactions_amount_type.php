@@ -29,8 +29,8 @@ class UpdateTransactionsAmountType extends Migration
     {
         Schema::table('transactions', function (Blueprint $table) {
             $table->decimal('amount', 11, 2)->change();
-            $table->decimal('sender_fee', 11, 2)->change();
-            $table->decimal('international_fee', 11, 2)->change();
+            $table->decimal('sender_fee', 11, 2);
+            $table->decimal('international_fee', 11, 2);
         });
     }
 }

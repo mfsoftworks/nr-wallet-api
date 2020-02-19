@@ -124,7 +124,7 @@ Route::prefix('v1')->group(function () {
             ->name('profile.stripe');
 
         Route::get('transaction/prepare', 'TransactionController@prepare')
-            ->middleware('scope:create-pending-transaction')
+            ->middleware('scope:create-pending-transaction', 'nonce:transaction')
             ->name('transaction.prepare');
 
         Route::put('transaction/update', 'TransactionController@update')

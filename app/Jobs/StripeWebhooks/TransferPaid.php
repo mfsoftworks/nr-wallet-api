@@ -73,5 +73,7 @@ class TransferPaid implements ShouldQueue
         // Send Notification
         FCM::sendToGroup($sender->fcm_token, $options->build(), $sNotification, null);
         FCM::sendToGroup($receiver->fcm_token, $options->build(), $rNotification, null);
+
+        // TODO: Update Transaction
     }
 }

@@ -2,9 +2,7 @@
 
 namespace App;
 
-use Illuminate\Database\Eloquent\Model;
-
-class Transaction extends Model
+class Transaction extends CachableModel
 {
     /**
      * The attributes that are mass assignable.
@@ -21,7 +19,8 @@ class Transaction extends Model
         'status',
         'type',
         'for_user_id',
-        'from_user_id'
+        'from_user_id',
+        'nonce'
     ];
 
     /**

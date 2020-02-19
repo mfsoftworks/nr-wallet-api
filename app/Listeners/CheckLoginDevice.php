@@ -44,9 +44,11 @@ class CheckLoginDevice implements ShouldQueue
          * - Device and platform and browser (Nexus Android 4.0 Chrome)
          *
          */
-        if (!$agent['robot']) {
+        if ($agent['robot'] !== true) {
+            Log::alert('Checking login devices');
+
             // Check if any similar device
-            Device::where('user_id', $agent['user_id'])
+            $device = Device::where('user_id', $agent['user_id'])
                 ->where('device', $agent['device'])
                 ->where(function($q) use ($agent) {
                     $q->where('ip', $agent['ip'])
@@ -57,11 +59,39 @@ class CheckLoginDevice implements ShouldQueue
                 })
                 ->first();
 
-            // TODO: Send unknown device email
-            $user = User::findOrFail($agent['user_id']);
+            Log::alert("Similar Login Devices: " . \json_encode($device, JSON_PRETTY_PRINT));
 
-            // Save device
-            Device::create($agent);
+            // Setup email
+            $user = User::findOrFail($agent['user_id']);
+            // FIXME: Replace beautymail (Remove dependency, shift to html5 template)
+            // $beautymail = app()->make('Snowfire\Beautymail\Beautymail');
+
+            if (!$device) {
+                // Send unknown device email
+                // $beautymail->send(
+                //     'emails.unknown-device',
+                //     [
+                //         'title' => 'Unknown Device Login',
+                //         'agent' => $agent
+                //     ],
+                //     function($message) use ($user) {
+                //         $message->from('it@nygmarosebeauty.com', 'NR Flow')
+                //             ->to($user->email, $user->username)
+                //             ->subject('NR Flow unknown device login');
+                //     }
+                // );
+
+                // Save device
+                Device::create($agent);
+                return;
+            }
+
+            // Send known device email
+            $beautymail->send('emails.unknown-device', ['agent' => $agent], function($message) use ($user) {
+                $message->from('mua@nygmarosebeauty.com', 'NR Flow')
+                    ->to($user->email, $user->username)
+                    ->subject('NR Flow new login');
+            });
         }
     }
 }

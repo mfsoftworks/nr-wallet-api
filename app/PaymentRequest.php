@@ -2,9 +2,7 @@
 
 namespace App;
 
-use Illuminate\Database\Eloquent\Model;
-
-class PaymentRequest extends Model
+class PaymentRequest extends CachableModel
 {
     /**
      * The attributes that are mass assignable.
