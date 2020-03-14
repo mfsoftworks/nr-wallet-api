@@ -6,9 +6,12 @@ use App\User;
 use App\Device;
 use Jenssegers\Agent\Agent;
 use App\Events\UserLogin;
-use Illuminate\Support\Facades\Log;
+use App\Mail\UnknownDeviceLogin;
+use App\Mail\KnownDeviceLogin;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Log;
+use Mail;
 
 class CheckLoginDevice implements ShouldQueue
 {
@@ -63,35 +66,18 @@ class CheckLoginDevice implements ShouldQueue
 
             // Setup email
             $user = User::findOrFail($agent['user_id']);
-            // FIXME: Replace beautymail (Remove dependency, shift to html5 template)
-            // $beautymail = app()->make('Snowfire\Beautymail\Beautymail');
 
+            // Save device
             if (!$device) {
-                // Send unknown device email
-                // $beautymail->send(
-                //     'emails.unknown-device',
-                //     [
-                //         'title' => 'Unknown Device Login',
-                //         'agent' => $agent
-                //     ],
-                //     function($message) use ($user) {
-                //         $message->from('it@nygmarosebeauty.com', 'NR Flow')
-                //             ->to($user->email, $user->username)
-                //             ->subject('NR Flow unknown device login');
-                //     }
-                // );
-
-                // Save device
                 Device::create($agent);
-                return;
             }
 
-            // Send known device email
-            $beautymail->send('emails.unknown-device', ['agent' => $agent], function($message) use ($user) {
-                $message->from('mua@nygmarosebeauty.com', 'NR Flow')
-                    ->to($user->email, $user->username)
-                    ->subject('NR Flow new login');
-            });
+            // Send email to known or unknown
+            Mail::to($user->email)->queue(
+                $device
+                    ? new KnownDeviceLogin($agent)
+                    : new UnknownDeviceLogin($agent)
+            );
         }
     }
 }

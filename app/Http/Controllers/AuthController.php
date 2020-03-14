@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use Jenssegers\Agent\Agent;
 use App\User;
 use App\Events\UserLogin;
+use App\Mail\Welcome;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Validator;
+use Mail;
 
 class AuthController extends Controller
 {
@@ -45,10 +47,13 @@ class AuthController extends Controller
         // Create customer TODO: Convert to Job
         \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
         $customer = \Stripe\Customer::create(["email" => $user->email]);
-        auth()->user()->fill(['stripe_customer_id' => $customer->id])->save();
+        $user->fill(['stripe_customer_id' => $customer->id])->save();
+
+        // Email out welcome email
+        Mail::to($user->email)
+            ->queue(new Welcome($user));
 
         // FIXME: Replace beautymail (Remove dependency, shift to html5 template)
-        // Email out welcome email
         // $beautymail = app()->make('Snowfire\Beautymail\Beautymail');
         // $beautymail->send('emails.welcome', [], function($message) use ($user) {
         //     $message->from('mua@nygmarosebeauty.com', 'NR Escape')

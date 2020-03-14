@@ -1,15 +1,24 @@
-@extends('beautymail::templates.ark')
+@extends('emails.standard.master')
 
-@section('content')
+@section('title')
+	WELCOME {{ $username }}
+@endsection
 
-	@include('beautymail::templates.ark.contentStart')
-		<span style="padding-top: 15px">
-			<h4 class="secondary"><strong>Welcome to NR Flow</strong></h4>
-			<br>
-			<p>Welcome to the new NR Flow comprehensive wallet.</p>
-			<p>We're excited to bring you a brand new way to let your finances flow without interruption.</p>
-			<p>At NR we're built for you, with everything open to you to give you the best platform possible.</p>
-		</span>
-	@include('beautymail::templates.ark.contentEnd')
+@section('headline1', 'Welcome to the new NR Flow comprehensive wallet')
 
-@stop
+@section('button-text', 'Let it Flow')
+
+@section('button-link', 'https://wallet.nygmarosebeauty.com')
+
+@section('headline2', 'YOUR ACCOUNT IS NOW ACTIVE')
+
+@section('bold-text')
+	We're excited to bring you a brand new way to let your finances flow without interruption.
+	You can now begin sending money to anyone, anywhere.
+@endsection
+
+@section('text')
+	You can register a receiving account in-app and begin receiving money from everyone!
+	<br><br>
+	At NR we're built for you, with everything open to you to give you the best platform possible.
+@endsection
