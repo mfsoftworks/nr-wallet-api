@@ -34,7 +34,7 @@ class TransactionController extends Controller
         $intent = \Stripe\PaymentIntent::create([
             'amount' => $amount,
             'application_fee_amount' => floor($amount * env('WALLET_STRIPE_FEES', 0.05)),
-            'currency' => auth()->user()->default_currency,
+            'currency' => auth()->user()->default_currency ?? env('DEFAULT_CURRENCY', 'aud'),
             'customer' => $customer->id,
             'setup_future_usage' => 'on_session',
             'metadata' => [
@@ -52,7 +52,7 @@ class TransactionController extends Controller
         // Create Transaction
         $transaction = Transaction::create([
             'amount' => $amount,
-            'currency' => auth()->user()->default_currency,
+            'currency' => auth()->user()->default_currency ?? env('DEFAULT_CURRENCY', 'aud'),
             'description' => $request->description,
             'stripe_transaction_id' => $intent->id,
             'status' => 'hidden',
