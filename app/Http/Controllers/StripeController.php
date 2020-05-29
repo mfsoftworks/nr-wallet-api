@@ -99,7 +99,7 @@ class StripeController extends Controller
      */
     public function basicAccount(Request $request, $id) {
         $user = User::find($id);
-        $stripe = [
+        $stripe = (object) [
             'country' => null,
             'default_currency' => 'aud',
             'business_type' => null,
