@@ -29,6 +29,9 @@ class TransactionController extends Controller
             $customer = \Stripe\Customer::retrieve(auth()->user()->stripe_customer_id);
         }
 
+        // Find receiver
+        $for_user = User::find($request->for_user_id);
+
         // Create PaymentIntent, default amount to 100, fee to 50
         $amount = $request->amount ?? 100;
         $intent = \Stripe\PaymentIntent::create([
@@ -41,12 +44,12 @@ class TransactionController extends Controller
                 'user_id' => auth()->user()->id,
                 'for_user_id' => $request->for_user_id
             ],
-            "transfer_data" => [
-                "destination" => User::find($request->for_user_id)->stripe_connect_id,
+            'payment_method_types' => [
+                'card'
             ],
-            'payment_method_types' => ['card'],
         ], [
-            'idempotency_key' => $request->nonce
+            'idempotency_key' => $request->nonce,
+            'stripe_account' => $for_user->stripe_connect_id
         ]);
 
         // Create Transaction
@@ -100,13 +103,12 @@ class TransactionController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function show(Request $request, $id)
-    {
+    public function show(Request $request, $id) {
         return response()->json(Transaction::find($id));
     }
 
     /**
-     * Updte PaymentIntent data
+     * Update PaymentIntent data
      *
      * @param Request $request
      * @return \Illuminate\Http\Response
@@ -129,6 +131,8 @@ class TransactionController extends Controller
                 'application_fee_amount' => floor($request->amount * env('WALLET_STRIPE_FEES', 0.05)),
                 'currency' => $request->currency,
                 'description' => $request->description
+            ], [
+                'stripe_account' => $for_user->stripe_connect_id
             ]
         );
 
@@ -197,7 +201,9 @@ class TransactionController extends Controller
                         'metadata' => [
                             'application_fee' => $fee_amount >= 50 ? $fee_amount : 50
                         ],
-                    ], ['stripe_account' => auth()->user()->stripe_connect_id]);
+                    ], [
+                        'stripe_account' => auth()->user()->stripe_connect_id
+                    ]);
 
                     // Update transaction
                     $transaction->fill([
