@@ -99,7 +99,12 @@ class StripeController extends Controller
      */
     public function basicAccount(Request $request, $id) {
         $user = User::find($id);
-        $stripe = null;
+        $stripe = [
+            'country' => null,
+            'default_currency' => 'aud',
+            'business_type' => null,
+            'can_accept_payments' => false
+        ];
 
         // Retrieve Stripe account balance
         if (!!$user->stripe_connect_id) {
@@ -108,10 +113,10 @@ class StripeController extends Controller
         }
 
         return response()->json([
-            'country' => $stripe->country ?? null,
-            'default_currency' => $stripe->default_currency ?? 'aud',
-            'business_type' => $stripe->business_type ?? null,
-            'can_accept_payments' => !!$stripe->id ?? false
+            'country' => $stripe->country,
+            'default_currency' => $stripe->default_currency,
+            'business_type' => $stripe->business_type,
+            'can_accept_payments' => !!$stripe->id
         ]);
     }
 
