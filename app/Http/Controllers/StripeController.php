@@ -99,13 +99,14 @@ class StripeController extends Controller
      */
     public function basicAccount(Request $request, $id) {
         $user = User::find($id);
+        $stripe = null;
 
         // Retrieve Stripe account balance
         if (!!$user->stripe_connect_id) {
             \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
             $stripe = \Stripe\Account::retrieve($user->stripe_connect_id);
         }
-        
+
         return response()->json([
             'country' => $stripe->country ?? null,
             'default_currency' => $stripe->default_currency ?? 'aud',
