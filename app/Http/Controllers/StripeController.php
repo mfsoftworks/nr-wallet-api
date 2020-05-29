@@ -101,13 +101,16 @@ class StripeController extends Controller
         $user = User::find($id);
 
         // Retrieve Stripe account balance
-        \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
-        $stripe = \Stripe\Account::retrieve($user->stripe_connect_id);
+        if (!!$user->stripe_connect_id) {
+            \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
+            $stripe = \Stripe\Account::retrieve($user->stripe_connect_id);
+        }
+        
         return response()->json([
-            'country' => $stripe->country,
-            'default_currency' => $stripe->default_currency,
-            'business_type' => $stripe->business_type,
-            'can_accept_payments' => !!$stripe->id
+            'country' => $stripe->country ?? null,
+            'default_currency' => $stripe->default_currency ?? 'aud',
+            'business_type' => $stripe->business_type ?? null,
+            'can_accept_payments' => !!$stripe->id ?? false
         ]);
     }
 
