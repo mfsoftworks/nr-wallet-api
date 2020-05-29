@@ -106,7 +106,8 @@ class StripeController extends Controller
         return response()->json([
             'country' => $stripe->country,
             'default_currency' => $stripe->default_currency,
-            'business_type' => $stripe->business_type
+            'business_type' => $stripe->business_type,
+            'can_accept_payments' => !!$stripe->id
         ]);
     }
 

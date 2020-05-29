@@ -29,6 +29,9 @@ class TransactionController extends Controller
             $customer = \Stripe\Customer::retrieve(auth()->user()->stripe_customer_id);
         }
 
+        // Get for_user
+        $for_user = User::find($request->for_user_id);
+
         // Create PaymentIntent, default amount to 100, fee to 50
         $amount = $request->amount ?? 100;
         $intent = \Stripe\PaymentIntent::create([
@@ -45,7 +48,7 @@ class TransactionController extends Controller
             ],
             'setup_future_usage' => 'on_session',
             "transfer_data" => [
-                "destination" => User::find($request->for_user_id)->stripe_connect_id,
+                "destination" => $for_user->stripe_connect_id,
             ],
         ], [
             'idempotency_key' => $request->nonce
