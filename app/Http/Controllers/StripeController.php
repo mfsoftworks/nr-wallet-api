@@ -103,7 +103,7 @@ class StripeController extends Controller
             'country' => null,
             'default_currency' => 'aud',
             'business_type' => null,
-            'can_accept_payments' => false
+            'id' => false
         ];
 
         // Retrieve Stripe account balance
