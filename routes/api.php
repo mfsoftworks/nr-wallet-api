@@ -117,13 +117,13 @@ Route::prefix('v1')->group(function () {
         });
 
         // resource routes
-        Route::get('profile/{id}', 'ProfileController@show')
-            ->name('profile.show')
-            ->where('id', '[0-9]+');
-
         Route::get('profile/{name}', 'ProfileController@showUsername')
-            ->name('profile.show.name')
-            ->where('name', '[A-Za-z0-9]+');
+            ->where('name', '[A-Za-z]+[0-9]*')
+            ->name('profile.name.show');
+
+        Route::get('profile/{id}', 'ProfileController@show')
+            ->where('id', '[0-9]+')
+            ->name('profile.show');
 
         Route::get('profile/stripe/{id}', 'StripeController@basicAccount')
             ->name('profile.stripe');
