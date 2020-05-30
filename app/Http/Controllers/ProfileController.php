@@ -25,7 +25,7 @@ class ProfileController extends Controller
      * @param  string  $name
      * @return \Illuminate\Http\Response
      */
-    public function showUsername(String $name)
+    public function showUsername(string $name)
     {
         return response()->json(User::where('username', '=', $name));
     }
