@@ -123,7 +123,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('profile/{name}', 'ProfileController@showUsername')
             ->name('profile.show.name')
-            ->where('name', '[A-Za-z]+');
+            ->where('name', '[A-Za-z0-9]+');
 
         Route::get('profile/stripe/{id}', 'StripeController@basicAccount')
             ->name('profile.stripe');
