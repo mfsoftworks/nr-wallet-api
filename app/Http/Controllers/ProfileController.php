@@ -26,6 +26,8 @@ class ProfileController extends Controller
      */
     public function showUsername($name)
     {
-        return response()->json(User::where('username', '=', $name));
+        return response()->json(
+            User::where('username', '=', $name)->get()
+        );
     }
 }
