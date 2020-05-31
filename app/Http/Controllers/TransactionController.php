@@ -111,6 +111,18 @@ class TransactionController extends Controller
     }
 
     /**
+     * Display the specified resource.
+     *
+     * @param Request $request
+     * @param string $id
+     * @return \Illuminate\Http\Response
+     */
+    public function showIntent(Request $request, $id)
+    {
+        return response()->json(Transaction::where('intent', $id)->first());
+    }
+
+    /**
      * Updte PaymentIntent data
      *
      * @param Request $request

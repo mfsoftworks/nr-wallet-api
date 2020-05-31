@@ -140,6 +140,10 @@ Route::prefix('v1')->group(function () {
             ->middleware('scope:confirm-transaction')
             ->name('transaction.pay');
 
+        Route::get('transaction/intent/{id}', 'TransactionController@showIntent')
+            ->middleware('scope:view-transaction-history')
+            ->name('transaction.intent.show');
+
         Route::apiResource('transaction', 'TransactionController')
             ->middleware('scope:view-transaction-history')
             ->only('show', 'index');
