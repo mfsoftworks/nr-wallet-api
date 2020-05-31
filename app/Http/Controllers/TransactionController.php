@@ -119,7 +119,7 @@ class TransactionController extends Controller
      */
     public function showIntent(Request $request, $id)
     {
-        return response()->json(Transaction::where('intent', $id)->first());
+        return response()->json(Transaction::where('stripe_transaction_id', $id)->first());
     }
 
     /**
