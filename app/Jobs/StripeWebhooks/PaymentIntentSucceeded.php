@@ -43,12 +43,14 @@ class PaymentIntentSucceeded implements ShouldQueue
         // DEBUG: Log Call
         Log::alert($this->webhookCall);
         $data = $this->webhookCall->payload["data"]["object"];
+        Log::alert(array_keys($data));
+        Log::alert(array_keys($data["metadata"]));
 
         // Get User & FCM Token
         $sender = null;
-        if (isset($data["metadata"]["user_id"])) {
-            $sender = User::find($data["metadata"]["user_id"]);
-        }
+        // if (isset($data["metadata"]["user_id"])) {
+        //     $sender = User::find($data["metadata"]["user_id"]);
+        // }
         $receiver = User::findOrFail($data["metadata"]["for_user_id"]);
 
         // Get Transactions
