@@ -31,16 +31,15 @@ class Nonce
         // Check for nonce use in scope (Authenticated User + Model)
         switch (strtolower($model)) {
             case 'transaction':
-
                 $use = Transaction::where('nonce', $request->nonce)
-                    ->where('from_user_id', auth()->user()->id)
+                    ->where('from_user_id', auth()->user()->id ?? null)
                     ->first();
 
                 if ($use) {
                     Log::alert("Nonce {$nonce} in use by: " . \json_encode($use, JSON_PRETTY_PRINT));
                     return response()->json([
                         'error' => [
-                            'message' => 'This nonce has already been allocted.'
+                            'message' => 'This nonce has already been used.'
                         ]
                     ], 400);
                 }

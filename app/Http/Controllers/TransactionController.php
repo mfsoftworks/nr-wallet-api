@@ -180,7 +180,11 @@ class TransactionController extends Controller
         switch ($request->type) {
             case 'balance':
                 if (!$from) {
-                    return response('Login required', 401);
+                    return response()->json([
+                        'error' => [
+                            'message' => 'Login required.'
+                        ]
+                    ], 400);
                 }
 
                 $fee_amount = floor($request->amount * env('WALLET_STRIPE_FEES', 0.05));
