@@ -21,7 +21,8 @@ class TransactionController extends Controller
 
         // get from data
         $from = auth()->user();
-        $customer = !!$from ? getCustomer() : null;
+        $customer = $from ? getCustomer() : null;
+        Log::notice($customer);
 
         // Get for_user
         $for_user = User::find($request->for_user_id);
@@ -242,9 +243,9 @@ class TransactionController extends Controller
                 "email" => auth()->user()->email
             ]);
             auth()->user()->fill(['stripe_customer_id' => $customer->id])->save();
+            return $customer;
         } else {
-            $customer = \Stripe\Customer::retrieve(auth()->user()->stripe_customer_id);
+            return \Stripe\Customer::retrieve(auth()->user()->stripe_customer_id);
         }
-        return $customer;
     }
 }
