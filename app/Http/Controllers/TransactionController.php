@@ -22,12 +22,7 @@ class TransactionController extends Controller
 
         // get from data
         $from = Auth::guard('api')->user();
-        Log::alert("USER");
-        Log::alert(Auth::guard('api')->user());
-        $customer = null;
-        if ($from) {
-            $customer = this::getCustomer();
-        }
+        $customer = $from ? $this->getCustomer() : null;
         Log::notice($customer);
 
         // Get for_user
