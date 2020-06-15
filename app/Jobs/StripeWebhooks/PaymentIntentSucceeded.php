@@ -47,7 +47,7 @@ class PaymentIntentSucceeded implements ShouldQueue
         $data = $this->webhookCall->payload["data"]["object"];
 
         // Get User & FCM Token
-        $sender = User::findOrFail($data["metadata"]["user_id"]);
+        $sender = User::find($data["metadata"]["user_id"]);
         $receiver = User::findOrFail($data["metadata"]["for_user_id"]);
 
         // Get Transactions
@@ -57,22 +57,28 @@ class PaymentIntentSucceeded implements ShouldQueue
         $amount = $data["amount"]/100;
         $currency = strtoupper($data["currency"]);
 
-        // Create Notifications
+        // Build notification extras
         $note = $transaction->description ? "Note: {$description}" : "";
-        $sNotification = (new PayloadNotificationBuilder())
-            ->setTitle('Transfer Complete')
-            ->setBody("Completed transferring \${$amount} {$currency} to {$receiver->username}")
-            ->setChannelId('transfers')
-            ->build();
+        $senderName = $sender->username ?? "Anonymous";
+        $options = (new OptionsBuilder())->setCollapseKey($data["id"]);
+
+        if ($sender) {
+            $sNotification = (new PayloadNotificationBuilder())
+                ->setTitle('Transfer Complete')
+                ->setBody("Completed transferring \${$amount} {$currency} to {$receiver->username}")
+                ->setChannelId('transfers')
+                ->build();
+            // Send Notification
+            FCM::sendToGroup($sender->fcm_token, $options->build(), $sNotification, null);
+        }
+
         $rNotification = (new PayloadNotificationBuilder())
-            ->setTitle("{$sender->username} sent \${$amount} {$currency}")
+            ->setTitle("{$senderName} sent \${$amount} {$currency}")
             ->setBody($note)
             ->setChannelId('transfers')
             ->build();
-        $options = (new OptionsBuilder())->setCollapseKey($data["id"]);
 
         // Send Notification
-        FCM::sendToGroup($sender->fcm_token, $options->build(), $sNotification, null);
         FCM::sendToGroup($receiver->fcm_token, $options->build(), $rNotification, null);
 
         // TODO: Update Transaction
