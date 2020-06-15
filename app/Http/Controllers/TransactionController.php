@@ -35,7 +35,7 @@ class TransactionController extends Controller
             'currency' => $from->default_currency ?? env('DEFAULT_CURRENCY', 'aud'),
             'customer' => $customer->id ?? null,
             'metadata' => [
-                'user_id' => $from->id ?? 0,
+                'user_id' => $from->id ?? null,
                 'for_user_id' => $request->for_user_id
             ],
             'payment_method_types' => [
