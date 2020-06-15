@@ -23,7 +23,6 @@ class TransactionController extends Controller
         // get from data
         $from = Auth::guard('api')->user();
         $customer = $from ? $this->getCustomer() : null;
-        Log::notice($customer);
 
         // Get for_user
         $for_user = User::find($request->for_user_id);
@@ -128,7 +127,7 @@ class TransactionController extends Controller
         \Stripe\Stripe::setApiKey('sk_test_ccu7Gl8YxOlksae8zncTMTiE');
 
         // get from data
-        !!Auth::guard('api')->user() ? getCustomer() : null;
+        !!Auth::guard('api')->user() ? $this->getCustomer() : null;
 
         // Update PaymentIntent with final info before processing
         $intent = \Stripe\PaymentIntent::update(
@@ -164,7 +163,6 @@ class TransactionController extends Controller
 
         // get from data
         $from = Auth::guard('api')->user();
-        !!$from ? getCustomer() : null;
 
         // Update Transaction
         $transaction = Transaction::where('stripe_transaction_id', $request->stripe_transaction_id)->first();
