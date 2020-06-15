@@ -32,7 +32,7 @@ class TransactionController extends Controller
             'amount' => $amount,
             'application_fee_amount' => floor($amount * env('WALLET_STRIPE_FEES', 0.05)),
             'currency' => $from->default_currency ?? env('DEFAULT_CURRENCY', 'aud'),
-            'customer' => $customer->id,
+            'customer' => $customer->id ?? null,
             'metadata' => [
                 'user_id' => $from->id ?? null,
                 'for_user_id' => $request->for_user_id
@@ -126,7 +126,7 @@ class TransactionController extends Controller
         \Stripe\Stripe::setApiKey('sk_test_ccu7Gl8YxOlksae8zncTMTiE');
 
         // get from data
-        $customer = !!auth()->user() ? getCustomer() : null;
+        !!auth()->user() ? getCustomer() : null;
 
         // Update PaymentIntent with final info before processing
         $intent = \Stripe\PaymentIntent::update(
@@ -162,7 +162,7 @@ class TransactionController extends Controller
 
         // get from data
         $from = auth()->user();
-        $customer = !!$from ? getCustomer() : null;
+        !!$from ? getCustomer() : null;
 
         // Update Transaction
         $transaction = Transaction::where('stripe_transaction_id', $request->stripe_transaction_id)->first();
