@@ -48,24 +48,21 @@ Route::prefix('v1')->group(function () {
         ->name('profile.stripe');
 
     Route::get('transaction/prepare', 'TransactionController@prepare')
-        ->middleware('scope:create-pending-transaction', 'nonce:transaction')
+        ->middleware('nonce:transaction')
+        // ->middleware('scope:create-pending-transaction', 'nonce:transaction')
         ->name('transaction.prepare');
 
     Route::put('transaction/update', 'TransactionController@update')
-        ->middleware('scope:create-pending-transaction')
+        // ->middleware('scope:create-pending-transaction')
         ->name('transaction.update');
 
     Route::post('transaction/pay', 'TransactionController@pay')
-        ->middleware('scope:confirm-transaction')
+        // ->middleware('scope:confirm-transaction')
         ->name('transaction.pay');
 
     Route::get('transaction/intent/{id}', 'TransactionController@showIntent')
-        ->middleware('scope:view-transaction-history')
+        // ->middleware('scope:view-transaction-history')
         ->name('transaction.intent.show');
-
-    Route::apiResource('transaction', 'TransactionController')
-        ->middleware('scope:view-transaction-history')
-        ->only('show', 'index');
 
     // authorised routes
     Route::middleware(['auth:api', 'user.status'])->group(function () {
@@ -149,6 +146,10 @@ Route::prefix('v1')->group(function () {
         });
 
         // resource routes
+        Route::apiResource('transaction', 'TransactionController')
+            ->middleware('scope:view-transaction-history')
+            ->only('show', 'index');
+
         Route::apiResource('request', 'PaymentRequestController')
             ->middleware('scope:create-payment-request')
             ->only('show', 'store');
