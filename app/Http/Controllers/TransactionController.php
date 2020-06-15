@@ -21,6 +21,7 @@ class TransactionController extends Controller
 
         // get from data
         $from = auth()->user();
+        Log::alert($from);
         $customer = null;
         if ($from) {
             $customer = this::getCustomer();
