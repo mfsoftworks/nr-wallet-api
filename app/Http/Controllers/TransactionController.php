@@ -7,6 +7,7 @@ use App\User;
 use Illuminate\Http\Request;
 use Log;
 use Carbon;
+use Auth;
 
 class TransactionController extends Controller
 {
@@ -20,9 +21,9 @@ class TransactionController extends Controller
         \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
 
         // get from data
-        $from = auth()->user();
+        $from = Auth::guard('api')->user();
         Log::alert("USER");
-        Log::alert(auth()->user());
+        Log::alert(Auth::guard('api')->user());
         $customer = null;
         if ($from) {
             $customer = this::getCustomer();
@@ -79,13 +80,13 @@ class TransactionController extends Controller
     public function index(Request $request) {
         // TODO: Add `date between` check
 
-        $sent = auth()->user()
+        $sent = Auth::guard('api')->user()
             ->sent()
             ->whereDate('created_at', '>=', Carbon::now()->subMonths(3))
-            ->whereNotIn('for_user_id', [auth()->user()->id])
+            ->whereNotIn('for_user_id', [Auth::guard('api')->user()->id])
             ->where('status', '!=', 'hidden')
             ->latest();
-        $received = auth()->user()
+        $received = Auth::guard('api')->user()
             ->received()
             ->whereDate('created_at', '>=', Carbon::now()->subMonths(3))
             ->where('status', '!=', 'hidden')
@@ -132,7 +133,7 @@ class TransactionController extends Controller
         \Stripe\Stripe::setApiKey('sk_test_ccu7Gl8YxOlksae8zncTMTiE');
 
         // get from data
-        !!auth()->user() ? getCustomer() : null;
+        !!Auth::guard('api')->user() ? getCustomer() : null;
 
         // Update PaymentIntent with final info before processing
         $intent = \Stripe\PaymentIntent::update(
@@ -158,7 +159,7 @@ class TransactionController extends Controller
     /**
      * Process transaction payment
      *
-     * TODO: If auth()->user()->settings['payment_auth'] then require verification before processing payment
+     * TODO: If Auth::guard('api')->user()->settings['payment_auth'] then require verification before processing payment
      *
      * @param Request $request
      * @return \Illuminate\Http\Response
@@ -167,7 +168,7 @@ class TransactionController extends Controller
         \Stripe\Stripe::setApiKey('sk_test_ccu7Gl8YxOlksae8zncTMTiE');
 
         // get from data
-        $from = auth()->user();
+        $from = Auth::guard('api')->user();
         !!$from ? getCustomer() : null;
 
         // Update Transaction
@@ -243,14 +244,14 @@ class TransactionController extends Controller
 
     private function getCustomer() {
         // If no customer, create customer
-        if (!auth()->user()->stripe_customer_id) {
+        if (!Auth::guard('api')->user()->stripe_customer_id) {
             $customer = \Stripe\Customer::create([
-                "email" => auth()->user()->email
+                "email" => Auth::guard('api')->user()->email
             ]);
-            auth()->user()->fill(['stripe_customer_id' => $customer->id])->save();
+            Auth::guard('api')->user()->fill(['stripe_customer_id' => $customer->id])->save();
             return $customer;
         } else {
-            return \Stripe\Customer::retrieve(auth()->user()->stripe_customer_id);
+            return \Stripe\Customer::retrieve(Auth::guard('api')->user()->stripe_customer_id);
         }
     }
 }
