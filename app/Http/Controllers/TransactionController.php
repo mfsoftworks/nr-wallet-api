@@ -19,15 +19,9 @@ class TransactionController extends Controller
     public function prepare(Request $request) {
         \Stripe\Stripe::setApiKey(env('STRIPE_SECRET_KEY'));
 
-        // If no customer, create customer
-        if (!auth()->user()->stripe_customer_id) {
-            $customer = \Stripe\Customer::create([
-                "email" => auth()->user()->email
-            ]);
-            auth()->user()->fill(['stripe_customer_id' => $customer->id])->save();
-        } else {
-            $customer = \Stripe\Customer::retrieve(auth()->user()->stripe_customer_id);
-        }
+        // get from data
+        $from = auth()->user();
+        $customer = !!$from ? getCustomer() : null;
 
         // Get for_user
         $for_user = User::find($request->for_user_id);
@@ -37,10 +31,10 @@ class TransactionController extends Controller
         $intent = \Stripe\PaymentIntent::create([
             'amount' => $amount,
             'application_fee_amount' => floor($amount * env('WALLET_STRIPE_FEES', 0.05)),
-            'currency' => auth()->user()->default_currency ?? env('DEFAULT_CURRENCY', 'aud'),
+            'currency' => $from->default_currency ?? env('DEFAULT_CURRENCY', 'aud'),
             'customer' => $customer->id,
             'metadata' => [
-                'user_id' => auth()->user()->id,
+                'user_id' => $from->id ?? null,
                 'for_user_id' => $request->for_user_id
             ],
             'payment_method_types' => [
@@ -57,13 +51,13 @@ class TransactionController extends Controller
         // Create Transaction
         $transaction = Transaction::create([
             'amount' => $amount,
-            'currency' => auth()->user()->default_currency ?? env('DEFAULT_CURRENCY', 'aud'),
+            'currency' => $from->default_currency ?? env('DEFAULT_CURRENCY', 'aud'),
             'description' => $request->description,
             'stripe_transaction_id' => $intent->id,
             'status' => 'hidden',
             'type' => 'card',
             'for_user_id' => $request->for_user_id,
-            'from_user_id' => auth()->user()->id,
+            'from_user_id' => $from->id ?? null,
             'nonce' => $request->nonce
         ]);
 
@@ -131,13 +125,8 @@ class TransactionController extends Controller
     public function update(Request $request) {
         \Stripe\Stripe::setApiKey('sk_test_ccu7Gl8YxOlksae8zncTMTiE');
 
-        // If no customer create customer
-        if (!auth()->user()->stripe_customer_id) {
-            $customer = \Stripe\Customer::create(["email" => auth()->user()->email]);
-            auth()->user()->fill(['stripe_customer_id' => $customer->id])->save();
-        } else {
-            $customer = \Stripe\Customer::retrieve(auth()->user()->stripe_customer_id);
-        }
+        // get from data
+        $customer = !!auth()->user() ? getCustomer() : null;
 
         // Update PaymentIntent with final info before processing
         $intent = \Stripe\PaymentIntent::update(
@@ -171,13 +160,9 @@ class TransactionController extends Controller
     public function pay(Request $request) {
         \Stripe\Stripe::setApiKey('sk_test_ccu7Gl8YxOlksae8zncTMTiE');
 
-        // If no customer create customer
-        if (!auth()->user()->stripe_customer_id) {
-            $customer = \Stripe\Customer::create(["email" => auth()->user()->email]);
-            auth()->user()->fill(['stripe_customer_id' => $customer->id])->save();
-        } else {
-            $customer = \Stripe\Customer::retrieve(auth()->user()->stripe_customer_id);
-        }
+        // get from data
+        $from = auth()->user();
+        $customer = !!$from ? getCustomer() : null;
 
         // Update Transaction
         $transaction = Transaction::where('stripe_transaction_id', $request->stripe_transaction_id)->first();
@@ -194,13 +179,17 @@ class TransactionController extends Controller
         // Process payment of source transaction
         switch ($request->type) {
             case 'balance':
+                if (!$from) {
+                    return response('Login required', 401);
+                }
+
                 $fee_amount = floor($request->amount * env('WALLET_STRIPE_FEES', 0.05));
 
                 // Create transaction for fee amount to Wallet connect account
                 $fee = \Stripe\Charge::create([
                     "amount" => $fee_amount >= 50 ? $fee_amount : 50,
                     "currency" => $request->currency,
-                    "source" => auth()->user()->stripe_connect_id,
+                    "source" => $from->stripe_connect_id,
                     'description' => "Wallet Fee for: {$request->description}"
                 ]);
 
@@ -209,12 +198,12 @@ class TransactionController extends Controller
                     $charge = \Stripe\Charge::create([
                         "amount" => $request->amount - ($fee_amount >= 50 ? $fee_amount : 50),
                         "currency" => $request->currency,
-                        "source" => auth()->user()->stripe_connect_id,
+                        "source" => $from->stripe_connect_id,
                         'description' => $request->description,
                         'metadata' => [
                             'application_fee' => $fee_amount >= 50 ? $fee_amount : 50
                         ],
-                    ], ['stripe_account' => auth()->user()->stripe_connect_id]);
+                    ], ['stripe_account' => $from->stripe_connect_id]);
 
                     // Update transaction
                     $transaction->fill([
@@ -240,5 +229,18 @@ class TransactionController extends Controller
                 $intent = \Stripe\PaymentIntent::retrieve($request->stripe_transaction_id);
                 return $intent;
         }
+    }
+
+    private function getCustomer() {
+        // If no customer, create customer
+        if (!auth()->user()->stripe_customer_id) {
+            $customer = \Stripe\Customer::create([
+                "email" => auth()->user()->email
+            ]);
+            auth()->user()->fill(['stripe_customer_id' => $customer->id])->save();
+        } else {
+            $customer = \Stripe\Customer::retrieve(auth()->user()->stripe_customer_id);
+        }
+        return $customer;
     }
 }
